@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TSFB - Accessible Digital Toolkit</title>
+    <script src="https://unpkg.com/tesseract.js@v2.1.0/dist/tesseract.min.js"></script>
+    <style>
+        :root { --primary: #003366; --secondary: #28a745; --bg: #f4f7f9; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); margin: 0; padding: 20px; }
+        header { background: var(--primary); color: white; padding: 40px 20px; text-align: center; border-radius: 15px; margin-bottom: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+        .container { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 25px; }
+        .tool-card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 6px 12px rgba(0,0,0,0.08); border-top: 6px solid var(--primary); transition: 0.3s; }
+        .tool-card:hover { transform: translateY(-5px); }
+        h2 { color: var(--primary); font-size: 1.3rem; margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        button { background: var(--primary); color: white; padding: 12px; border: none; border-radius: 6px; cursor: pointer; width: 100%; font-weight: 600; margin-top: 10px; font-size: 16px; }
+        button:hover { opacity: 0.9; }
+        textarea, input, select { width: 100%; padding: 12px; margin-top: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 15px; }
+        .status { color: #555; font-size: 0.9rem; margin-top: 12px; font-weight: bold; aria-live: polite; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>TSFB Universal Tools Portal</h1>
+    <p>Empowering Visually Impaired Users Worldwide</p>
+</header>
+
+<div class="container">
+    <div class="tool-card">
+        <h2>1. Image to Text (OCR)</h2>
+        <input type="file" id="ocrFile" accept="image/*" aria-label="Upload Image">
+        <button onclick="runOCR()">Scan Image</button>
+        <p id="ocrStatus" class="status"></p>
+        <textarea id="ocrResult" rows="4" readonly placeholder="Extracted text will appear here..."></textarea>
+    </div>
+
+    <div class="tool-card">
+        <h2>2. Screen Reader (TTS)</h2>
+        <textarea id="ttsInput" rows="3" placeholder="Paste text here..."></textarea>
+        <button onclick="startTTS()">🔊 Speak</button>
+        <button onclick="window.speechSynthesis.cancel()" style="background:#cc0000;">🛑 Stop</button>
+    </div>
+
+    <div class="tool-card">
+        <h2>3. English to Hindi Translator</h2>
+        <textarea id="transInput" rows="3" placeholder="Enter English text..."></textarea>
+        <button onclick="doTranslate()">🌐 Translate Now</button>
+        <p class="status">Note: Opens result in a clean new tab.</p>
+    </div>
+
+    <div class="tool-card">
+        <h2>4. Microphone Tester</h2>
+        <button onclick="checkMic()">🎤 Test Mic Privacy</button>
+        <p id="micStatus" class="status"></p>
+    </div>
+
+    <div class="tool-card">
+        <h2>5. Password Generator</h2>
+        <button onclick="genSecurePass()">🔐 Generate Password</button>
+        <input type="text" id="passDisplay" readonly>
+        <button onclick="copyToClipboard('passDisplay')" style="background:var(--secondary);">Copy Password</button>
+    </div>
+
+    <div class="tool-card">
+        <h2>6. Word Counter</h2>
+        <textarea id="wordInput" oninput="analyzeText()" rows="3" placeholder="Type here..."></textarea>
+        <p id="wordStatus" class="status">Words: 0 | Chars: 0</p>
+    </div>
+
+    <div class="tool-card">
+        <h2>7. Age Calculator</h2>
+        <input type="date" id="birthDate">
+        <button onclick="getAge()">Calculate Age</button>
+        <p id="ageStatus" class="status"></p>
+    </div>
+
+    <div class="tool-card">
+        <h2>8. Stereo Speaker Tester</h2>
+        <button onclick="playStereo('left')">Play Left Only</button>
+        <button onclick="playStereo('right')">Play Right Only</button>
+    </div>
+
+    <div class="tool-card">
+        <h2>9. Case Converter</h2>
+        <textarea id="caseInput" rows="2" placeholder="TEXT TO CHANGE"></textarea>
+        <button onclick="transformText('up')">UPPERCASE</button>
+        <button onclick="transformText('low')">lowercase</button>
+    </div>
+
+    <div class="tool-card">
+        <h2>10. Day of the Week</h2>
+        <input type="date" id="dateInput">
+        <button onclick="findTheDay()">Find Day</button>
+        <p id="dayStatus" class="status"></p>
+    </div>
+
+</div>
+
+<script>
+    // 1. OCR Logic
+    async function runOCR() {
+        const file = document.getElementById('ocrFile').files[0];
+        if(!file) { alert("Please select a file first"); return; }
+        document.getElementById('ocrStatus').innerText = "Processing Image... Please wait.";
+        Tesseract.recognize(file, 'eng+hin').then(({ data: { text } }) => {
+            document.getElementById('ocrResult').value = text;
+            document.getElementById('ocrStatus').innerText = "Success: Text Extracted.";
+        });
+    }
+
+    // 2. TTS Logic
+    function startTTS() {
+        const msg = new SpeechSynthesisUtterance(document.getElementById('ttsInput').value);
+        window.speechSynthesis.speak(msg);
+    }
+
+    // 3. Translation Logic (Google Proxy)
+    function doTranslate() {
+        const txt = document.getElementById('transInput').value;
+        window.open(`https://translate.google.com/?sl=en&tl=hi&text=${encodeURIComponent(txt)}`, "_blank");
+    }
+
+    // 4. Mic Logic
+    async function checkMic() {
+        try {
+            const s = await navigator.mediaDevices.getUserMedia({ audio: true });
+            document.getElementById('micStatus').innerText = "✅ Mic is working perfectly!";
+            s.getTracks().forEach(t => t.stop());
+        } catch(e) { document.getElementById('micStatus').innerText = "❌ Mic Error or Permission Denied."; }
+    }
+
+    // 5. Password Logic
+    function genSecurePass() {
+        const p = Math.random().toString(36).slice(-10).toUpperCase() + "!" + Math.floor(Math.random()*100);
+        document.getElementById('passDisplay').value = p;
+    }
+
+    // 6. Word Count
+    function analyzeText() {
+        const t = document.getElementById('wordInput').value.trim();
+        const w = t ? t.split(/\s+/).length : 0;
+        document.getElementById('wordStatus').innerText = `Words: ${w} | Characters: ${t.length}`;
+    }
+
+    // 7. Age
+    function getAge() {
+        const b = new Date(document.getElementById('birthDate').value);
+        const age = new Date().getFullYear() - b.getFullYear();
+        document.getElementById('ageStatus').innerText = `Current Age: ${age} Years.`;
+    }
+
+    // 8. Stereo Test
+    function playStereo(side) {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const o = ctx.createOscillator();
+        const p = ctx.createStereoPanner();
+        p.pan.value = (side === 'left') ? -1 : 1;
+        o.connect(p).connect(ctx.destination);
+        o.start(); setTimeout(() => o.stop(), 800);
+    }
+
+    // 9. Case
+    function transformText(m) {
+        const i = document.getElementById('caseInput');
+        i.value = (m === 'up') ? i.value.toUpperCase() : i.value.toLowerCase();
+    }
+
+    // 10. Day
+    function findTheDay() {
+        const d = new Date(document.getElementById('dateInput').value);
+        const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+        document.getElementById('dayStatus').innerText = `It was/is a ${days[d.getDay()]}.`;
+    }
+
+    // Helper
+    function copyToClipboard(id) {
+        const copyText = document.getElementById(id);
+        copyText.select();
+        document.execCommand("copy");
+    }
+</script>
+</body>
+</html>
